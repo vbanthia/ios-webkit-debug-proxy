@@ -1093,7 +1093,7 @@ ws_status iwdp_on_frame(ws_t ws,
         char *s;
         if (asprintf(&s, "Page %d/%d %s%s", iport->port, iws->page_num,
             (p ? "claimed by " : "not found"),
-            (p ? "" : (p->iws ? "local" : "remote"))) < 0) {
+            (p ? (p->iws ? "local" : "remote") : "")) < 0) {
           return ws->on_error(ws, "asprintf failed");
         }
         ws->on_error(ws, "%s", s);
@@ -1381,6 +1381,15 @@ rpc_status iwdp_on_applicationSentData(rpc_t rpc,
       data, length);
 }
 
+rpc_status iwdp_on_applicationUpdated(rpc_t rpc,
+    const char *app_id, const char *bundle_id) {
+      if ((strcmp(bundle_id, "com.apple.mobilesafari") == 0) ||
+           (strcmp(bundle_id, "com.apple.WebKit.WebContent") == 0)) {
+        return iwdp_remove_app_id(rpc, app_id);
+      }
+      return iwdp_add_app_id(rpc, app_id);
+}
+
 //
 // STRUCTS
 //
@@ -1600,6 +1609,7 @@ iwdp_iwi_t iwdp_iwi_new(bool is_sim, bool *is_debug) {
   rpc->on_applicationDisconnected = iwdp_on_applicationDisconnected;
   rpc->on_applicationSentListing = iwdp_on_applicationSentListing;
   rpc->on_applicationSentData = iwdp_on_applicationSentData;
+  rpc->on_applicationUpdated = iwdp_on_applicationUpdated;
   rpc->send_plist = iwdp_send_plist;
   rpc->state = iwi;
   iwi->rpc = rpc;

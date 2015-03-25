@@ -421,6 +421,39 @@ rpc_status rpc_recv_applicationSentData(rpc_t self, const plist_t args) {
   return ret;
 }
 
+/*
+_rpc_applicationUpdated:
+<dict>
+  <key>WIRApplicationIdentifierKey</key>
+  <string>PID:417</string>
+  <key>WIRIsApplicationProxyKey</key>
+  <false/>
+  <key>WIRApplicationNameKey</key>
+  <string>xxxx</string>
+  <key>WIRApplicationBundleIdentifierKey</key>
+  <string>xxxx</string>
+  <key>WIRIsApplicationActiveKey</key>
+  <integer>0</integer>
+</dict>
+*/
+
+rpc_status rpc_recv_applicationUpdated(rpc_t self, const plist_t args) {
+  char *app_id = NULL;
+  char *bundle_id = NULL;
+  rpc_status ret;
+  if (!rpc_dict_get_required_string(args, "WIRApplicationIdentifierKey", &app_id) &&
+      !rpc_dict_get_required_string(args, "WIRApplicationBundleIdentifierKey", &bundle_id) &&
+      !self->on_applicationUpdated(self, app_id, bundle_id)) {
+    ret = RPC_SUCCESS;
+  } else {
+    ret = RPC_ERROR;
+  }
+  free(app_id);
+  free(bundle_id);
+  return ret;
+}
+
+
 rpc_status rpc_recv_msg(rpc_t self, const char *selector, const plist_t args) {
   if (!selector) {
     return RPC_ERROR;
@@ -447,6 +480,10 @@ rpc_status rpc_recv_msg(rpc_t self, const char *selector, const plist_t args) {
     }
   } else if (!strcmp(selector, "_rpc_applicationSentData:")) {
     if (!rpc_recv_applicationSentData(self, args)) {
+      return RPC_SUCCESS;
+    }
+  } else if (!strcmp(selector, "_rpc_applicationUpdated:")) {
+    if (!rpc_recv_applicationUpdated(self, args)) {
       return RPC_SUCCESS;
     }
   }
